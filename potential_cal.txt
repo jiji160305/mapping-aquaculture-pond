@@ -1,0 +1,24 @@
+import geopandas as gdp
+from sklearn import preprocessing
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from sklearn.feature_extraction import DictVectorizer
+from sklearn import preprocessing
+from sklearn import tree
+import pickle
+
+with open('D://dt_cap.pkl', 'rb') as f:
+    model = pickle.load(f)
+
+gdf = gpd.read_file(r'labels.shp')
+training = gdf[['area','perimeter','SI','compactness','P2A','ER']].to_numpy()
+predict = model.predict(training)
+predict1 = predict.tolist()
+result = gdf.copy()
+i=0
+for pre in predict1:
+    if pre ==0:
+        result.iloc[i].drop()
+    i=i+1
+result.to_file('result.shp') 

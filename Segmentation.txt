@@ -1,0 +1,60 @@
+// var weka = require('users/balddinosaur/weka:weka.js');
+//Filter the collection for the VV product from the descending track
+var collectionVV=ee.ImageCollection('COPERNICUS/S1_GRD')
+    .filter(ee.Filter.eq('instrumentMode','IW'))
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation','VV'))
+    .filterBounds(roi)
+    .filterDate('2020-01-01','2020-12-31')
+    .select(['VV']);
+print(collectionVV);
+
+//Filter the collection for the VV product from the descending track
+var collectionVH=ee.ImageCollection('COPERNICUS/S1_GRD')
+    .filter(ee.Filter.eq('instrumentMode','IW'))
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation','VH'))
+    .filterBounds(roi)
+    .filterDate('2020-01-01','2020-12-31')
+    .select(['VH']);
+print(collectionVH);
+
+//centre the view of roi
+Map.centerObject(roi, 15);
+
+//Map view of VV
+var VV=collectionVV.median();
+var VV1=VV.clip(roi);
+Map.addLayer(VV1,{min:-14,max:-7},'VV1');
+
+//Map view of VH
+var VH=collectionVH.median();
+var VH1=VH.clip(roi);
+Map.addLayer(VH1,{min:-28,max:-7},'VH1');
+
+//compute the index
+var jianshu=ee.Number(8);
+var ksdwi=VV1.multiply(VH1).multiply(10).log().subtract(jianshu);
+Map.addLayer(ksdwi,{},'ksdwi');
+
+//plot ksdwi histogram
+//var histogram = ui.Chart.image.histogram(ksdwi, roi1, 10);
+//print(histogram);
+
+//water layer
+var kk=ksdwi.gte(0.375).rename('water');
+Map.addLayer(kk,{},"kk");
+
+
+var patchid = kk.connectedComponents(ee.Kernel.square(1), 256);
+print(patchid)
+var labels = patchid.select('labels')
+Map.addLayer(patchid.select("labels").randomVisualizer(), {}, 'patches',false);   //显示各个斑块
+
+
+Export.image.toDrive({
+  image: labels,
+  description: "labels",
+  fileNamePrefix: "labels",
+  scale: 10,
+  region: roi,
+  maxPixels: 1e13
+});
